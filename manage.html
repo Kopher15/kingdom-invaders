@@ -1,0 +1,539 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FCA CVR — Manage</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .page-body { flex: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 28px; }
+
+    .manage-section { display: flex; flex-direction: column; gap: 12px; }
+    .manage-section-header {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+      padding-bottom: 10px; border-bottom: 1px solid var(--border);
+    }
+    .manage-section-header h2 { font-size: 16px; font-weight: 700; }
+    .manage-section-header p  { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+    /* Category table */
+    .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    thead th {
+      background: rgba(255,255,255,0.04); padding: 10px 16px;
+      text-align: left; font-size: 12px; font-weight: 600;
+      color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border);
+    }
+    tbody tr { border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.12s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,0.03); }
+    tbody td { padding: 11px 16px; vertical-align: middle; }
+    .td-actions { display: flex; gap: 6px; }
+    .empty-row td { text-align: center; padding: 36px; color: var(--muted); }
+
+    /* User cards */
+    .user-list { display: flex; flex-direction: column; gap: 8px; }
+    .user-row {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px 16px;
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    }
+    .user-avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: rgba(29,181,132,0.2); color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; flex-shrink: 0;
+    }
+    .user-info { flex: 1; min-width: 120px; }
+    .user-info .uname  { font-size: 14px; font-weight: 600; }
+    .user-info .umeta  { font-size: 12px; color: var(--muted); margin-top: 1px; }
+    .user-actions { display: flex; gap: 6px; }
+
+    /* Campus table row highlight */
+    .campus-tag {
+      display: inline-block; padding: 2px 8px; border-radius: 20px;
+      background: rgba(29,181,132,0.12); color: var(--accent); font-size: 12px;
+    }
+
+    @media (max-width: 600px) { .page-body { padding: 12px; } }
+  </style>
+</head>
+<body>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+  <div class="app-shell">
+
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="logo-wrap-sm"><img src="assets/fca-logo.png" alt="FCA"></div>
+        <div class="sidebar-brand-text">
+          <span class="sidebar-brand-name">Kingdom Invaders</span>
+          <span class="sidebar-brand-org">FCA</span>
+        </div>
+      </div>
+      <ul class="nav-list">
+        <li><a href="home.html"     class="nav-link">Home</a></li>
+        <li><a href="calendar.html" class="nav-link">Calendar</a></li>
+        <li><a href="players.html"  class="nav-link">Players</a></li>
+        <li><a href="staffing.html" class="nav-link">Staffing</a></li>
+        <li><a href="topics.html"   class="nav-link">Topics</a></li>
+        <li><a href="gallery.html"  class="nav-link">Gallery</a></li>
+        <li><a href="manage.html"   class="nav-link active admin-only">Manage</a></li>
+      </ul>
+      <div class="nav-bottom">
+        <div class="user-name" id="nav-name">—</div>
+        <div class="user-role" id="nav-role">—</div>
+        <div style="margin-top:10px;">
+          <a href="profile.html" style="color:var(--muted);font-size:13px;text-decoration:none;">Profile</a>
+          &nbsp;·&nbsp;
+          <a href="#" id="logout-link" style="color:var(--muted);font-size:13px;text-decoration:none;">Sign out</a>
+        </div>
+      </div>
+    </nav>
+
+    <div class="main-content">
+      <div class="topbar">
+        <button class="hamburger" id="hamburger">☰</button>
+        <span class="topbar-title">Manage</span>
+      </div>
+
+      <div class="page-body">
+
+        <!-- ── Categories ── -->
+        <div class="manage-section">
+          <div class="manage-section-header">
+            <div>
+              <h2>Categories</h2>
+              <p>Sport types and age groups per campus</p>
+            </div>
+            <button class="btn btn-primary btn-sm" id="add-cat-btn">+ Add Category</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Sport Type</th>
+                  <th>Age Group</th>
+                  <th>Campus</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="cat-tbody">
+                <tr class="empty-row"><td colspan="4"><span class="spinner"></span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ── Volunteers ── -->
+        <div class="manage-section">
+          <div class="manage-section-header">
+            <div>
+              <h2>Volunteers</h2>
+              <p>Active volunteer accounts and campus assignments</p>
+            </div>
+            <button class="btn btn-primary btn-sm" id="add-vol-btn">+ Add Volunteer</button>
+          </div>
+          <div class="user-list" id="vol-list">
+            <div class="loading-center"><span class="spinner"></span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Category Modal -->
+  <div class="modal-backdrop" id="cat-modal">
+    <div class="modal" style="max-width:440px;">
+      <div class="modal-header">
+        <h2 id="cat-modal-title">Add Category</h2>
+        <button class="modal-close" onclick="closeModal('cat-modal')">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="cat-alert" class="alert alert-error" style="display:none;"></div>
+        <input type="hidden" id="edit-cat-id">
+        <div class="form-group">
+          <label>Campus</label>
+          <select id="c-campus"></select>
+        </div>
+        <div class="form-group">
+          <label>Sport Type</label>
+          <input type="text" id="c-sport" placeholder="e.g. Basketball, Football, Soccer">
+        </div>
+        <div class="form-group">
+          <label>Age Group</label>
+          <input type="text" id="c-age" placeholder="e.g. 16U, College, Open">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal('cat-modal')">Cancel</button>
+        <button type="button" class="btn btn-primary" id="save-cat-btn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Volunteer Modal -->
+  <div class="modal-backdrop" id="vol-modal">
+    <div class="modal" style="max-width:440px;">
+      <div class="modal-header">
+        <h2 id="vol-modal-title">Add Volunteer</h2>
+        <button class="modal-close" onclick="closeModal('vol-modal')">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="vol-alert" class="alert alert-error" style="display:none;"></div>
+        <input type="hidden" id="edit-vol-id">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="v-name" placeholder="Full name">
+        </div>
+        <!-- Add mode: show auto-generated credentials -->
+        <div id="v-add-fields">
+          <div class="form-group">
+            <label>Username <span style="color:var(--muted);font-size:11px;">(auto-generated)</span></label>
+            <input type="text" id="v-username-preview" readonly
+              style="opacity:0.65;cursor:not-allowed;background:rgba(255,255,255,0.04);">
+          </div>
+          <div style="background:rgba(29,181,132,0.08);border:1px solid rgba(29,181,132,0.2);
+                      border-radius:8px;padding:10px 14px;font-size:13px;color:var(--muted);margin-bottom:16px;">
+            Default password: <strong style="color:var(--text);">fca1234</strong>
+            &nbsp;—&nbsp;volunteer can change username &amp; password after first login
+          </div>
+        </div>
+        <!-- Edit mode: show read-only info -->
+        <div id="v-edit-fields" style="display:none;">
+          <div style="background:rgba(255,255,255,0.05);border:1px solid var(--border);
+                      border-radius:8px;padding:10px 14px;font-size:13px;color:var(--muted);margin-bottom:16px;">
+            Username &amp; password can be changed by the volunteer from their <strong style="color:var(--text);">Profile</strong> page.
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Campus Assignments <span style="color:var(--muted);font-size:11px;">(select all that apply)</span></label>
+          <div id="v-campus-checks" style="display:flex;flex-direction:column;gap:8px;padding:6px 0;max-height:160px;overflow-y:auto;"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal('vol-modal')">Cancel</button>
+        <button type="button" class="btn btn-primary" id="save-vol-btn">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Credentials Flash -->
+  <div class="modal-backdrop" id="creds-modal">
+    <div class="modal" style="max-width:360px;">
+      <div class="modal-header">
+        <h2>Volunteer Created</h2>
+        <button class="modal-close" onclick="closeModal('creds-modal')">×</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--muted);margin-bottom:14px;">Share these credentials with the volunteer:</p>
+        <div style="background:rgba(29,181,132,0.08);border:1px solid rgba(29,181,132,0.25);border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;">
+          <div style="font-size:13px;">Username: <strong id="creds-username" style="color:var(--highlight);font-size:15px;"></strong></div>
+          <div style="font-size:13px;">Password: <strong style="color:var(--highlight);font-size:15px;">fca1234</strong></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="closeModal('creds-modal')">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirm -->
+  <div class="modal-backdrop" id="del-modal">
+    <div class="modal" style="max-width:360px;">
+      <div class="modal-header">
+        <h2>Confirm Delete</h2>
+        <button class="modal-close" onclick="closeModal('del-modal')">×</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--muted);">Delete <strong id="del-label" style="color:var(--text);"></strong>? This cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal('del-modal')">Cancel</button>
+        <button class="btn btn-danger" id="confirm-del-btn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    requireAuth();
+    // Manage page is admin-only
+    if (!isAdmin()) window.location.href = "calendar.html";
+
+    const user = getUser();
+    let campuses   = [];
+    let categories = [];
+    let volunteers = [];
+    let deletingFn = null;
+
+    async function init() {
+      document.getElementById("nav-name").textContent = user.full_name || "—";
+      document.getElementById("nav-role").textContent = user.role || "—";
+
+      const [campusRes, catRes, staffRes] = await Promise.all([
+        apiGet({ action: "getCampuses" }),
+        apiGet({ action: "getCategories" }),
+        apiGet({ action: "getStaffing" })
+      ]);
+
+      campuses   = Array.isArray(campusRes) ? campusRes : [];
+      categories = Array.isArray(catRes)    ? catRes    : [];
+
+      // Extract volunteers — deduplicate by user_id, collect all campus names
+      const volMap = {};
+      if (Array.isArray(staffRes)) {
+        staffRes.forEach(group => {
+          (group.volunteers || []).forEach(v => {
+            if (!volMap[v.user_id]) volMap[v.user_id] = { ...v, campus_names: [] };
+            volMap[v.user_id].campus_names.push(group.campus_name);
+            volMap[v.user_id].campus_assignments = v.campus_assignments || [];
+          });
+        });
+      }
+      volunteers = Object.values(volMap);
+
+      populateCampusSelects();
+      renderCategories();
+      renderVolunteers();
+    }
+
+    function populateCampusSelects() {
+      // Category modal — single campus select
+      const sel = document.getElementById("c-campus");
+      sel.innerHTML = '<option value="">— Select Campus —</option>';
+      campuses.forEach(c => {
+        const o = document.createElement("option");
+        o.value = c.campus_id; o.textContent = c.campus_name;
+        sel.appendChild(o);
+      });
+
+      // Volunteer modal — checkbox list
+      const box = document.getElementById("v-campus-checks");
+      box.innerHTML = campuses.map(c => `
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;">
+          <input type="checkbox" class="v-campus-cb" value="${c.campus_id}"
+            style="width:15px;height:15px;accent-color:var(--accent);cursor:pointer;">
+          ${escHtml(c.campus_name)}
+        </label>`).join("");
+    }
+
+    // ── Categories ────────────────────────────────────────────────
+    function renderCategories() {
+      const tbody = document.getElementById("cat-tbody");
+      if (!categories.length) {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="4">No categories yet</td></tr>';
+        return;
+      }
+      const campusMap = {};
+      campuses.forEach(c => { campusMap[c.campus_id] = c.campus_name; });
+
+      tbody.innerHTML = categories.map(c => `
+        <tr>
+          <td><strong>${escHtml(c.sport_type)}</strong></td>
+          <td>${escHtml(c.age_group)}</td>
+          <td><span class="campus-tag">${escHtml(campusMap[c.campus_id] || c.campus_id)}</span></td>
+          <td>
+            <div class="td-actions">
+              <button class="btn btn-ghost btn-sm" onclick='openEditCat(${JSON.stringify(c).replace(/"/g,"&quot;")})'>Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="openDel('${c.category_id}','${escHtml(c.sport_type + " · " + c.age_group)}', deleteCat)">Delete</button>
+            </div>
+          </td>
+        </tr>`).join("");
+    }
+
+    document.getElementById("add-cat-btn").addEventListener("click", () => {
+      document.getElementById("cat-modal-title").textContent = "Add Category";
+      document.getElementById("edit-cat-id").value = "";
+      document.getElementById("c-campus").value = "";
+      document.getElementById("c-sport").value  = "";
+      document.getElementById("c-age").value    = "";
+      hideAlert(document.getElementById("cat-alert"));
+      openModal("cat-modal");
+    });
+
+    function openEditCat(c) {
+      document.getElementById("cat-modal-title").textContent = "Edit Category";
+      document.getElementById("edit-cat-id").value = c.category_id;
+      document.getElementById("c-campus").value    = c.campus_id;
+      document.getElementById("c-sport").value     = c.sport_type;
+      document.getElementById("c-age").value       = c.age_group;
+      hideAlert(document.getElementById("cat-alert"));
+      openModal("cat-modal");
+    }
+
+    document.getElementById("save-cat-btn").addEventListener("click", async () => {
+      const alertEl  = document.getElementById("cat-alert");
+      const id       = document.getElementById("edit-cat-id").value;
+      const campusId = document.getElementById("c-campus").value;
+      const sport    = document.getElementById("c-sport").value.trim();
+      const age      = document.getElementById("c-age").value.trim();
+      if (!campusId || !sport || !age) { showAlert(alertEl, "All fields are required."); return; }
+
+      const btn = document.getElementById("save-cat-btn");
+      btn.disabled = true; btn.textContent = "Saving…";
+      try {
+        const res = id
+          ? await apiPost({ action: "updateCategory", category_id: id, campus_id: campusId, sport_type: sport, age_group: age })
+          : await apiPost({ action: "createCategory", campus_id: campusId, sport_type: sport, age_group: age });
+        if (res.error) { showAlert(alertEl, res.error); return; }
+        closeModal("cat-modal");
+        const catRes = await apiGet({ action: "getCategories" });
+        categories = Array.isArray(catRes) ? catRes : [];
+        renderCategories();
+      } catch(e) { showAlert(alertEl, "Connection error."); }
+      finally { btn.disabled = false; btn.textContent = "Save"; }
+    });
+
+    async function deleteCat(id) {
+      const res = await apiPost({ action: "deleteCategory", category_id: id });
+      if (!res.error) {
+        categories = categories.filter(c => c.category_id !== id);
+        renderCategories();
+      }
+    }
+
+    // ── Volunteers ────────────────────────────────────────────────
+    function renderVolunteers() {
+      const list = document.getElementById("vol-list");
+      if (!volunteers.length) {
+        list.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:12px;">No volunteers yet.</div>';
+        return;
+      }
+      list.innerHTML = volunteers.map(v => {
+        const campusTags = (v.campus_names || []).map(n =>
+          `<span class="campus-tag">${escHtml(n)}</span>`).join(" ");
+        return `
+        <div class="user-row">
+          <div class="user-avatar">${escHtml((v.full_name || "V").charAt(0).toUpperCase())}</div>
+          <div class="user-info">
+            <div class="uname">${escHtml(v.full_name)}</div>
+            <div class="umeta" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:3px;">
+              @${escHtml(v.username || v.user_id)} &nbsp;${campusTags}
+            </div>
+          </div>
+          <div class="user-actions">
+            <button class="btn btn-ghost btn-sm" onclick='openEditVol(${JSON.stringify(v).replace(/"/g,"&quot;")})'>Edit</button>
+          </div>
+        </div>`;
+      }).join("");
+    }
+
+    function generateUsername(fullName) {
+      const parts = fullName.trim().toLowerCase().replace(/[^a-z\s]/g, "").split(/\s+/).filter(Boolean);
+      if (!parts.length) return "";
+      if (parts.length === 1) return parts[0];
+      return parts[0][0] + parts[parts.length - 1];
+    }
+
+    document.getElementById("v-name").addEventListener("input", e => {
+      document.getElementById("v-username-preview").value = generateUsername(e.target.value);
+    });
+
+    document.getElementById("add-vol-btn").addEventListener("click", () => {
+      document.getElementById("vol-modal-title").textContent = "Add Volunteer";
+      document.getElementById("edit-vol-id").value = "";
+      document.getElementById("v-name").value = "";
+      document.getElementById("v-username-preview").value = "";
+      document.getElementById("v-add-fields").style.display = "block";
+      document.getElementById("v-edit-fields").style.display = "none";
+      document.querySelectorAll(".v-campus-cb").forEach(cb => cb.checked = false);
+      hideAlert(document.getElementById("vol-alert"));
+      openModal("vol-modal");
+    });
+
+    function openEditVol(v) {
+      document.getElementById("vol-modal-title").textContent = "Edit Volunteer";
+      document.getElementById("edit-vol-id").value = v.user_id;
+      document.getElementById("v-name").value      = v.full_name || "";
+      document.getElementById("v-add-fields").style.display  = "none";
+      document.getElementById("v-edit-fields").style.display = "block";
+      const assigned = v.campus_assignments || [];
+      document.querySelectorAll(".v-campus-cb").forEach(cb => {
+        cb.checked = assigned.includes(cb.value);
+      });
+      hideAlert(document.getElementById("vol-alert"));
+      openModal("vol-modal");
+    }
+
+    document.getElementById("save-vol-btn").addEventListener("click", async () => {
+      const alertEl  = document.getElementById("vol-alert");
+      const id       = document.getElementById("edit-vol-id").value;
+      const name     = document.getElementById("v-name").value.trim();
+      const selected = [...document.querySelectorAll(".v-campus-cb:checked")].map(cb => cb.value);
+
+      if (!name)           { showAlert(alertEl, "Full name is required."); return; }
+      if (!selected.length){ showAlert(alertEl, "Select at least one campus."); return; }
+
+      const btn = document.getElementById("save-vol-btn");
+      btn.disabled = true; btn.textContent = "Saving…";
+
+      try {
+        let payload, action;
+        if (id) {
+          payload = { action: "updateUser", user_id: id, full_name: name, campus_assignment: JSON.stringify(selected), role: "volunteer" };
+          action = "updateUser";
+        } else {
+          const username = generateUsername(name) || name.toLowerCase().replace(/\s+/g, "");
+          payload = { action: "registerUser", full_name: name, username, password: "fca1234", campus_assignment: JSON.stringify(selected), role: "volunteer" };
+          action = "registerUser";
+        }
+
+        const res = await apiPost(payload);
+        if (res.error) { showAlert(alertEl, res.error); return; }
+        closeModal("vol-modal");
+
+        if (!id) {
+          // Show credentials flash
+          document.getElementById("creds-username").textContent = generateUsername(name) || name.toLowerCase().replace(/\s+/g, "");
+          openModal("creds-modal");
+        }
+
+        // Refresh volunteer list
+        const staffRes = await apiGet({ action: "getStaffing" });
+        const volMap = {};
+        if (Array.isArray(staffRes)) {
+          staffRes.forEach(group => {
+            (group.volunteers || []).forEach(v => {
+              if (!volMap[v.user_id]) volMap[v.user_id] = { ...v, campus_names: [] };
+              volMap[v.user_id].campus_names.push(group.campus_name);
+              volMap[v.user_id].campus_assignments = v.campus_assignments || [];
+            });
+          });
+        }
+        volunteers = Object.values(volMap);
+        renderVolunteers();
+      } catch(e) { showAlert(alertEl, "Connection error."); }
+      finally { btn.disabled = false; btn.textContent = "Save"; }
+    });
+
+    // ── Delete helper ─────────────────────────────────────────────
+    function openDel(id, label, fn) {
+      deletingFn = () => fn(id);
+      document.getElementById("del-label").textContent = label;
+      openModal("del-modal");
+    }
+    document.getElementById("confirm-del-btn").addEventListener("click", async () => {
+      closeModal("del-modal");
+      if (deletingFn) await deletingFn();
+      deletingFn = null;
+    });
+
+    function escHtml(s) {
+      return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+
+    const sidebar = document.getElementById("sidebar");
+    const overlay = document.getElementById("sidebar-overlay");
+    document.getElementById("hamburger").addEventListener("click", () => { sidebar.classList.toggle("open"); overlay.classList.toggle("open"); });
+    overlay.addEventListener("click", () => { sidebar.classList.remove("open"); overlay.classList.remove("open"); });
+    document.getElementById("logout-link").addEventListener("click", e => { e.preventDefault(); logout(); });
+    document.querySelectorAll(".modal-backdrop").forEach(b => {
+      b.addEventListener("click", e => { if (e.target === b) b.classList.remove("open"); });
+    });
+
+    init();
+  </script>
+</body>
+</html>
