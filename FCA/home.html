@@ -1,0 +1,363 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FCA CVR — Home</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .page-body { flex: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+
+    /* Welcome banner */
+    .welcome-banner {
+      background: linear-gradient(135deg, rgba(29,181,132,0.18), rgba(29,181,132,0.05));
+      border: 1px solid rgba(29,181,132,0.3);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      display: flex; align-items: center; gap: 16px;
+    }
+    .welcome-logo { width: 48px; height: 48px; object-fit: contain; }
+    .welcome-text h2 { font-size: 18px; font-weight: 700; margin-bottom: 2px; }
+    .welcome-text p  { font-size: 13px; color: var(--muted); margin: 0; }
+
+    /* Quick stats row */
+    .quick-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+    .stat-tile {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 16px; text-align: center;
+    }
+    .stat-tile .stat-val { font-size: 28px; font-weight: 800; color: var(--accent); line-height: 1; }
+    .stat-tile .stat-lbl { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* Section title */
+    .section-heading {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 13px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.6px;
+    }
+
+    /* Announcement cards */
+    .ann-list { display: flex; flex-direction: column; gap: 12px; }
+    .ann-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    .ann-media img {
+      width: 100%; max-height: 220px; object-fit: cover;
+      display: block; border-bottom: 1px solid var(--border);
+    }
+    .ann-content { padding: 16px 18px; }
+    .ann-week { font-size: 11px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .ann-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+    .ann-body  { font-size: 13px; line-height: 1.6; color: rgba(255,255,255,0.8); white-space: pre-wrap; }
+    .ann-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .ann-meta { font-size: 11px; color: var(--muted); }
+
+    /* Weekly highlight grid */
+    .highlight-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 6px;
+    }
+    .highlight-tile {
+      aspect-ratio: 1; border-radius: 6px; overflow: hidden;
+      cursor: pointer; background: var(--surface);
+    }
+    .highlight-tile img {
+      width: 100%; height: 100%; object-fit: cover;
+      display: block; transition: transform 0.2s, opacity 0.2s;
+    }
+    .highlight-tile:hover img { transform: scale(1.05); opacity: 0.85; }
+    .highlight-empty { color: var(--muted); font-size: 13px; padding: 20px 0; }
+
+    .empty-state { text-align: center; padding: 60px 24px; color: var(--muted); }
+
+    @media (max-width: 600px) {
+      .page-body { padding: 12px; }
+      .welcome-banner { flex-direction: column; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+  <div class="app-shell">
+
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="logo-wrap-sm"><img src="assets/fca-logo.png" alt="FCA"></div>
+        <div class="sidebar-brand-text">
+          <span class="sidebar-brand-name">Kingdom Invaders</span>
+          <span class="sidebar-brand-org">FCA</span>
+        </div>
+      </div>
+      <ul class="nav-list">
+        <li><a href="home.html"     class="nav-link active">Home</a></li>
+        <li><a href="calendar.html" class="nav-link">Calendar</a></li>
+        <li><a href="players.html"  class="nav-link">Players</a></li>
+        <li><a href="staffing.html" class="nav-link">Staffing</a></li>
+        <li><a href="topics.html"   class="nav-link">Topics</a></li>
+        <li><a href="gallery.html"  class="nav-link">Gallery</a></li>
+        <li><a href="manage.html"   class="nav-link admin-only">Manage</a></li>
+      </ul>
+      <div class="nav-bottom">
+        <div class="user-name" id="nav-name">—</div>
+        <div class="user-role" id="nav-role">—</div>
+        <div style="margin-top:10px;">
+          <a href="profile.html" style="color:var(--muted);font-size:13px;text-decoration:none;">Profile</a>
+          &nbsp;·&nbsp;
+          <a href="#" id="logout-link" style="color:var(--muted);font-size:13px;text-decoration:none;">Sign out</a>
+        </div>
+      </div>
+    </nav>
+
+    <div class="main-content">
+      <div class="topbar">
+        <button class="hamburger" id="hamburger">☰</button>
+        <span class="topbar-title">Home</span>
+        <button class="btn btn-primary btn-sm admin-only" id="new-ann-btn">+ Post</button>
+      </div>
+
+      <div class="page-body">
+        <!-- Welcome -->
+        <div class="welcome-banner">
+          <img src="assets/fca-logo.png" alt="FCA" class="welcome-logo">
+          <div class="welcome-text">
+            <h2>Welcome back, <span id="welcome-name">—</span>!</h2>
+            <p>Kingdom Invaders · Fellowship of Christian Athletes</p>
+          </div>
+        </div>
+
+        <!-- Quick stats -->
+        <div class="quick-stats" id="quick-stats">
+          <div class="stat-tile"><div class="stat-val" id="st-players">—</div><div class="stat-lbl">Players</div></div>
+          <div class="stat-tile"><div class="stat-val" id="st-events">—</div><div class="stat-lbl">Events</div></div>
+          <div class="stat-tile"><div class="stat-val" id="st-attendance">—</div><div class="stat-lbl">Attendance Records</div></div>
+          <div class="stat-tile"><div class="stat-val" id="st-topics">—</div><div class="stat-lbl">Topics</div></div>
+        </div>
+
+        <!-- Weekly photo highlight -->
+        <div class="section-heading">
+          <span>This Week's Highlights</span>
+          <a href="gallery.html" style="font-size:12px;color:var(--accent);text-decoration:none;font-weight:600;">View all →</a>
+        </div>
+        <div id="weekly-highlight">
+          <div class="loading-center"><span class="spinner"></span></div>
+        </div>
+
+        <!-- Announcements -->
+        <div class="section-heading">
+          <span>Announcements &amp; Updates</span>
+        </div>
+        <div class="ann-list" id="ann-list">
+          <div class="loading-center"><span class="spinner"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Post Modal -->
+  <div class="modal-backdrop" id="ann-modal">
+    <div class="modal" style="max-width:540px;">
+      <div class="modal-header">
+        <h2 id="ann-modal-title">New Announcement</h2>
+        <button class="modal-close" onclick="closeModal('ann-modal')">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="ann-alert" class="alert alert-error" style="display:none;"></div>
+        <form id="ann-form">
+          <input type="hidden" id="ann-id">
+          <div class="form-group">
+            <label>Title</label>
+            <input type="text" id="ann-title" placeholder="e.g. Weekly Update — Week 3" required>
+          </div>
+          <div class="form-group">
+            <label>Week Label <span style="color:var(--muted);font-size:11px;">(optional)</span></label>
+            <input type="text" id="ann-week" placeholder="e.g. Week 3 · May 2026">
+          </div>
+          <div class="form-group">
+            <label>Body</label>
+            <textarea id="ann-body" rows="6" placeholder="Share an update, praise, or announcement…"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Media URL <span style="color:var(--muted);font-size:11px;">(Google Drive share link — optional)</span></label>
+            <input type="text" id="ann-media" placeholder="https://drive.google.com/…">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal('ann-modal')">Cancel</button>
+        <button type="button" class="btn btn-primary" id="save-ann-btn">Post</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirm -->
+  <div class="modal-backdrop" id="del-ann-modal">
+    <div class="modal" style="max-width:360px;">
+      <div class="modal-header">
+        <h2>Delete Post</h2>
+        <button class="modal-close" onclick="closeModal('del-ann-modal')">×</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--muted);">Delete <strong id="del-ann-title" style="color:var(--text);"></strong>? This cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal('del-ann-modal')">Cancel</button>
+        <button class="btn btn-danger" id="confirm-del-ann-btn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    requireAuth();
+    const user = getUser();
+    let deletingPostId = null;
+
+    async function init() {
+      document.getElementById("nav-name").textContent    = user.full_name || "—";
+      document.getElementById("nav-role").textContent    = user.role || "—";
+      document.getElementById("welcome-name").textContent = (user.full_name || "").split(" ")[0] || "—";
+
+      if (!isAdmin()) {
+        document.querySelectorAll(".admin-only").forEach(el => el.style.display = "none");
+      }
+
+      await Promise.all([loadMetrics(), loadWeeklyHighlight(), loadAnnouncements()]);
+    }
+
+    async function loadWeeklyHighlight() {
+      const res   = await apiGet({ action: "getWeeklyHighlight" });
+      const photos = Array.isArray(res) ? res : [];
+      const el    = document.getElementById("weekly-highlight");
+      if (!photos.length) {
+        el.innerHTML = '<div class="highlight-empty">No photos uploaded this week yet.</div>';
+        return;
+      }
+      el.innerHTML = `<div class="highlight-grid">
+        ${photos.map((ph, i) => `
+          <a href="gallery.html" class="highlight-tile">
+            <img src="https://drive.google.com/thumbnail?id=${ph.drive_file_id}&sz=w400"
+                 alt="${escHtml(ph.caption)}" loading="lazy"
+                 onerror="this.closest('.highlight-tile').style.display='none'">
+          </a>`).join("")}
+      </div>`;
+    }
+
+    async function loadMetrics() {
+      const res = await apiGet({ action: "getMetrics" });
+      if (res.error) return;
+      document.getElementById("st-players").textContent    = res.total_players    ?? "—";
+      document.getElementById("st-events").textContent     = res.total_events      ?? "—";
+      document.getElementById("st-attendance").textContent = res.total_attendance  ?? "—";
+      // Topics count from a separate call
+      const topics = await apiGet({ action: "getTopics" });
+      document.getElementById("st-topics").textContent = Array.isArray(topics) ? topics.length : "—";
+    }
+
+    async function loadAnnouncements() {
+      const res = await apiGet({ action: "getAnnouncements" });
+      const posts = Array.isArray(res) ? res.slice().reverse() : []; // newest first
+      const list  = document.getElementById("ann-list");
+
+      if (!posts.length) {
+        list.innerHTML = `<div class="empty-state">No announcements yet.</div>`;
+        return;
+      }
+
+      list.innerHTML = posts.map(p => {
+        const mediaHtml = p.media_drive_url
+          ? `<div class="ann-media"><img src="${driveThumb(p.media_drive_url)}" alt="media" onerror="this.parentElement.style.display='none'"></div>`
+          : "";
+        const delBtn = isAdmin()
+          ? `<button class="btn btn-danger btn-sm" onclick="openDelAnn('${p.post_id}','${escHtml(p.title)}')">Delete</button>`
+          : "";
+        return `
+          <div class="ann-card" id="ann-card-${p.post_id}">
+            ${mediaHtml}
+            <div class="ann-content">
+              ${p.week_label ? `<div class="ann-week">${escHtml(p.week_label)}</div>` : ""}
+              <div class="ann-title">${escHtml(p.title)}</div>
+              <div class="ann-body">${escHtml(p.body)}</div>
+              <div class="ann-footer">
+                <span class="ann-meta">Posted ${p.date_posted || "—"}</span>
+                ${delBtn}
+              </div>
+            </div>
+          </div>`;
+      }).join("");
+    }
+
+    function driveThumb(url) {
+      // Convert Google Drive share link to direct thumbnail
+      const m = url.match(/\/d\/([^/]+)/);
+      return m ? `https://drive.google.com/thumbnail?id=${m[1]}&sz=w800` : url;
+    }
+
+    // ── New Post ───────────────────────────────────────────────
+    document.getElementById("new-ann-btn")?.addEventListener("click", () => {
+      document.getElementById("ann-modal-title").textContent = "New Announcement";
+      document.getElementById("ann-form").reset();
+      document.getElementById("ann-id").value = "";
+      hideAlert(document.getElementById("ann-alert"));
+      openModal("ann-modal");
+    });
+
+    document.getElementById("save-ann-btn").addEventListener("click", async () => {
+      const alertEl = document.getElementById("ann-alert");
+      const title   = document.getElementById("ann-title").value.trim();
+      const body    = document.getElementById("ann-body").value.trim();
+      if (!title)   { showAlert(alertEl, "Title is required."); return; }
+      if (!body)    { showAlert(alertEl, "Body is required.");  return; }
+
+      const btn = document.getElementById("save-ann-btn");
+      btn.disabled = true; btn.textContent = "Posting…";
+
+      try {
+        const res = await apiPost({
+          action:         "createAnnouncement",
+          title:          title,
+          body:           body,
+          week_label:     document.getElementById("ann-week").value.trim(),
+          media_drive_url: document.getElementById("ann-media").value.trim()
+        });
+        if (res.error) { showAlert(alertEl, res.error); return; }
+        closeModal("ann-modal");
+        await loadAnnouncements();
+      } catch(e) {
+        showAlert(alertEl, "Connection error.");
+      } finally {
+        btn.disabled = false; btn.textContent = "Post";
+      }
+    });
+
+    // ── Delete ─────────────────────────────────────────────────
+    function openDelAnn(id, title) {
+      deletingPostId = id;
+      document.getElementById("del-ann-title").textContent = title;
+      openModal("del-ann-modal");
+    }
+
+    document.getElementById("confirm-del-ann-btn").addEventListener("click", async () => {
+      const res = await apiPost({ action: "deleteAnnouncement", post_id: deletingPostId });
+      closeModal("del-ann-modal");
+      if (!res.error) await loadAnnouncements();
+    });
+
+    function escHtml(s) {
+      return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+
+    const sidebar = document.getElementById("sidebar");
+    const overlay = document.getElementById("sidebar-overlay");
+    document.getElementById("hamburger").addEventListener("click", () => { sidebar.classList.toggle("open"); overlay.classList.toggle("open"); });
+    overlay.addEventListener("click", () => { sidebar.classList.remove("open"); overlay.classList.remove("open"); });
+    document.getElementById("logout-link").addEventListener("click", e => { e.preventDefault(); logout(); });
+    document.querySelectorAll(".modal-backdrop").forEach(b => {
+      b.addEventListener("click", e => { if (e.target === b) b.classList.remove("open"); });
+    });
+
+    init();
+  </script>
+</body>
+</html>

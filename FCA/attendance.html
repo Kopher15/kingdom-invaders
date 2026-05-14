@@ -1,0 +1,428 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FCA CVR — Attendance</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .page-body { flex: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+
+    /* Event info card */
+    .event-info {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .event-info-item { display: flex; flex-direction: column; }
+    .event-info-item .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+    .event-info-item .val { font-size: 15px; font-weight: 600; }
+
+    /* Player attendance list */
+    .att-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .att-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: border-color 0.15s;
+    }
+    .att-card.present { border-color: rgba(29,181,132,0.5); }
+
+    .att-card-header {
+      display: flex;
+      align-items: center;
+      padding: 14px 16px;
+      gap: 14px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .att-card-header:hover { background: rgba(255,255,255,0.03); }
+
+    .att-toggle {
+      width: 44px; height: 24px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 12px;
+      position: relative;
+      flex-shrink: 0;
+      transition: background 0.2s;
+      cursor: pointer;
+      border: none;
+    }
+    .att-toggle::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 18px; height: 18px;
+      background: rgba(255,255,255,0.5);
+      border-radius: 50%;
+      transition: transform 0.2s, background 0.2s;
+    }
+    .att-toggle.on { background: var(--accent); }
+    .att-toggle.on::after { transform: translateX(20px); background: #fff; }
+
+    .att-name { flex: 1; font-weight: 600; font-size: 15px; }
+    .att-category { font-size: 12px; color: var(--muted); }
+    .att-expand-icon { color: var(--muted); font-size: 12px; transition: transform 0.2s; }
+    .att-card.expanded .att-expand-icon { transform: rotate(180deg); }
+
+    .att-notes {
+      display: none;
+      padding: 0 16px 16px;
+      gap: 12px;
+      flex-direction: column;
+    }
+    .att-card.expanded .att-notes { display: flex; }
+
+    .att-notes .form-group { margin-bottom: 0; }
+    .att-notes label { color: var(--muted); font-size: 12px; }
+    .att-notes textarea {
+      font-size: 13px;
+      min-height: 60px;
+      background: rgba(255,255,255,0.05);
+    }
+
+    /* Submit bar */
+    .submit-bar {
+      position: sticky;
+      bottom: 0;
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin: 0 -24px -20px;
+    }
+    .submit-bar .present-count { font-size: 14px; color: var(--muted); flex: 1; }
+    .submit-bar .present-count strong { color: var(--accent); }
+
+    .already-submitted {
+      background: rgba(29,181,132,0.1);
+      border: 1px solid rgba(29,181,132,0.3);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      font-size: 13px;
+      color: var(--highlight);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    @media (max-width: 600px) {
+      .page-body { padding: 12px; }
+      .event-info { gap: 14px; }
+      .submit-bar { margin: 0 -12px -12px; padding: 12px 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+  <div class="app-shell">
+
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="logo-wrap-sm"><img src="assets/fca-logo.png" alt="FCA"></div>
+        <div class="sidebar-brand-text">
+          <span class="sidebar-brand-name">Kingdom Invaders</span>
+          <span class="sidebar-brand-org">FCA</span>
+        </div>
+      </div>
+      <ul class="nav-list">
+        <li><a href="home.html"     class="nav-link">Home</a></li>
+        <li><a href="calendar.html" class="nav-link">Calendar</a></li>
+        <li><a href="players.html"  class="nav-link">Players</a></li>
+        <li><a href="staffing.html" class="nav-link">Staffing</a></li>
+        <li><a href="topics.html"   class="nav-link">Topics</a></li>
+        <li><a href="gallery.html"  class="nav-link">Gallery</a></li>
+        <li><a href="manage.html"   class="nav-link admin-only">Manage</a></li>
+      </ul>
+      <div class="nav-bottom">
+        <div class="user-name" id="nav-name">—</div>
+        <div class="user-role" id="nav-role">—</div>
+        <div style="margin-top:10px;">
+          <a href="profile.html" style="color:var(--muted);font-size:13px;text-decoration:none;">Profile</a>
+          &nbsp;·&nbsp;
+          <a href="#" id="logout-link" style="color:var(--muted);font-size:13px;text-decoration:none;">Sign out</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main -->
+    <div class="main-content">
+      <div class="topbar">
+        <button class="hamburger" id="hamburger">☰</button>
+        <span class="topbar-title" id="topbar-title">Attendance</span>
+        <a href="calendar.html" class="btn btn-ghost btn-sm">← Calendar</a>
+      </div>
+
+      <div class="page-body" id="page-body">
+        <div class="loading-center"><span class="spinner"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script>
+    requireAuth();
+
+    const user    = getUser();
+    const params  = new URLSearchParams(window.location.search);
+    const eventId = params.get("event_id");
+
+    let currentEvent    = null;
+    let players         = [];
+    let existingRecords = {};  // player_id → record
+    let attendance      = {};  // player_id → { present, praises, prayer_requests }
+
+    // ── Init ─────────────────────────────────────────────────────
+    async function init() {
+      document.getElementById("nav-name").textContent = user.full_name || "—";
+      document.getElementById("nav-role").textContent = user.role || "—";
+      if (!isAdmin()) document.querySelectorAll(".admin-only").forEach(el => el.style.display = "none");
+
+      if (!eventId) {
+        renderError("No event specified. Go back to the calendar.");
+        return;
+      }
+
+      // Load event, players, existing attendance in parallel
+      const month = new Date().getMonth() + 1;
+      const year  = new Date().getFullYear();
+
+      const [eventsRes, attRes] = await Promise.all([
+        apiGet({ action: "getEvents", month, year }),
+        apiGet({ action: "getAttendance", event_id: eventId })
+      ]);
+
+      // Find the event (search ±1 month if not found)
+      let allEvents = Array.isArray(eventsRes) ? eventsRes : [];
+      currentEvent  = allEvents.find(e => e.event_id === eventId);
+
+      // If event not in current month, try adjacent months
+      if (!currentEvent) {
+        const [prevRes, nextRes] = await Promise.all([
+          apiGet({ action: "getEvents", month: month === 1 ? 12 : month - 1, year: month === 1 ? year - 1 : year }),
+          apiGet({ action: "getEvents", month: month === 12 ? 1 : month + 1, year: month === 12 ? year + 1 : year })
+        ]);
+        const broader = [...(Array.isArray(prevRes) ? prevRes : []), ...(Array.isArray(nextRes) ? nextRes : [])];
+        currentEvent  = broader.find(e => e.event_id === eventId);
+      }
+
+      if (!currentEvent) {
+        renderError("Event not found.");
+        return;
+      }
+
+      // Load players for this event's campus + category
+      const playersRes = await apiGet({
+        action:      "getPlayers",
+        campus_id:   currentEvent.campus_id,
+        category_id: currentEvent.category_id
+      });
+      players = Array.isArray(playersRes) ? playersRes : [];
+
+      // Map existing attendance
+      const records = Array.isArray(attRes) ? attRes : [];
+      records.forEach(r => { existingRecords[r.player_id] = r; });
+
+      // Build attendance state
+      players.forEach(p => {
+        const existing = existingRecords[p.player_id];
+        attendance[p.player_id] = {
+          present:         !!existing,
+          praises:         existing ? existing.praises         : "",
+          prayer_requests: existing ? existing.prayer_requests : ""
+        };
+      });
+
+      document.getElementById("topbar-title").textContent =
+        `Attendance · ${formatDateLabel(currentEvent.date)}`;
+
+      render();
+    }
+
+    // ── Render ────────────────────────────────────────────────────
+    function render() {
+      const body     = document.getElementById("page-body");
+      const submitted = Object.keys(existingRecords).length > 0;
+
+      const eventHtml = `
+        <div class="event-info">
+          <div class="event-info-item">
+            <span class="lbl">Date</span>
+            <span class="val">${formatDateLabel(currentEvent.date)}</span>
+          </div>
+          ${currentEvent.time ? `
+          <div class="event-info-item">
+            <span class="lbl">Time</span>
+            <span class="val">${formatTime(currentEvent.time)}</span>
+          </div>` : ""}
+          <div class="event-info-item">
+            <span class="lbl">Campus</span>
+            <span class="val">${currentEvent.campus_id}</span>
+          </div>
+          <div class="event-info-item">
+            <span class="lbl">Players</span>
+            <span class="val">${players.length}</span>
+          </div>
+          ${submitted ? `
+          <div style="margin-left:auto;">
+            <span class="badge badge-admin">✓ Submitted</span>
+          </div>` : ""}
+        </div>
+      `;
+
+      if (!players.length) {
+        body.innerHTML = eventHtml + `
+          <div class="card" style="text-align:center;padding:48px;color:var(--muted);">
+            No players registered for this campus &amp; category yet.<br>
+            <a href="players.html" style="color:var(--accent);margin-top:8px;display:inline-block;">→ Register players</a>
+          </div>`;
+        return;
+      }
+
+      const listHtml = players.map(p => buildCard(p)).join("");
+
+      const presentCount = Object.values(attendance).filter(a => a.present).length;
+      const submitBar = `
+        <div class="submit-bar">
+          <span class="present-count"><strong>${presentCount}</strong> / ${players.length} present</span>
+          <button class="btn btn-ghost btn-sm" onclick="markAll(false)">Mark All Absent</button>
+          <button class="btn btn-ghost btn-sm" onclick="markAll(true)">Mark All Present</button>
+          <button class="btn btn-primary" id="submit-btn" onclick="submitAttendance()">
+            ${submitted ? "Update" : "Submit"}
+          </button>
+        </div>`;
+
+      body.innerHTML = eventHtml + `<div class="att-list" id="att-list">${listHtml}</div>` + submitBar;
+
+      // Attach toggle listeners after render
+      players.forEach(p => {
+        document.getElementById(`toggle-${p.player_id}`)
+          .addEventListener("click", e => { e.stopPropagation(); togglePresent(p.player_id); });
+      });
+    }
+
+    function buildCard(p) {
+      const state    = attendance[p.player_id];
+      const present  = state.present;
+      return `
+        <div class="att-card ${present ? 'present' : ''}" id="card-${p.player_id}">
+          <div class="att-card-header" onclick="toggleExpand('${p.player_id}')">
+            <button class="att-toggle ${present ? 'on' : ''}" id="toggle-${p.player_id}"></button>
+            <span class="att-name">${escHtml(p.full_name)}</span>
+            <span class="att-category">${escHtml(p.category_label || "")}</span>
+            <span class="att-expand-icon">▼</span>
+          </div>
+          <div class="att-notes" id="notes-${p.player_id}">
+            <div class="form-group">
+              <label>Praises</label>
+              <textarea id="praises-${p.player_id}" placeholder="Any praises to share…">${escHtml(state.praises)}</textarea>
+            </div>
+            <div class="form-group">
+              <label>Prayer Requests</label>
+              <textarea id="prayers-${p.player_id}" placeholder="Any prayer requests…">${escHtml(state.prayer_requests)}</textarea>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    function togglePresent(playerId) {
+      attendance[playerId].present = !attendance[playerId].present;
+      const card   = document.getElementById(`card-${playerId}`);
+      const toggle = document.getElementById(`toggle-${playerId}`);
+      card.classList.toggle("present",   attendance[playerId].present);
+      toggle.classList.toggle("on",      attendance[playerId].present);
+      updateCount();
+    }
+
+    function toggleExpand(playerId) {
+      const card = document.getElementById(`card-${playerId}`);
+      card.classList.toggle("expanded");
+    }
+
+    function markAll(present) {
+      players.forEach(p => {
+        attendance[p.player_id].present = present;
+        document.getElementById(`card-${p.player_id}`).classList.toggle("present", present);
+        document.getElementById(`toggle-${p.player_id}`).classList.toggle("on", present);
+      });
+      updateCount();
+    }
+
+    function updateCount() {
+      const count = Object.values(attendance).filter(a => a.present).length;
+      document.querySelector(".present-count").innerHTML =
+        `<strong>${count}</strong> / ${players.length} present`;
+    }
+
+    async function submitAttendance() {
+      const btn = document.getElementById("submit-btn");
+      btn.disabled = true; btn.textContent = "Submitting…";
+
+      // Collect current textarea values
+      players.forEach(p => {
+        const praisesEl  = document.getElementById(`praises-${p.player_id}`);
+        const prayersEl  = document.getElementById(`prayers-${p.player_id}`);
+        if (praisesEl)  attendance[p.player_id].praises          = praisesEl.value;
+        if (prayersEl)  attendance[p.player_id].prayer_requests  = prayersEl.value;
+      });
+
+      const records = players
+        .filter(p => attendance[p.player_id].present)
+        .map(p => ({
+          player_id:       p.player_id,
+          praises:         attendance[p.player_id].praises,
+          prayer_requests: attendance[p.player_id].prayer_requests
+        }));
+
+      try {
+        const res = await apiPost({ action: "submitAttendance", event_id: eventId, records });
+        if (res.error) {
+          alert("Error: " + res.error);
+        } else {
+          // Refresh existing records state
+          records.forEach(r => { existingRecords[r.player_id] = r; });
+          btn.textContent = "✓ Saved";
+          setTimeout(() => { btn.disabled = false; btn.textContent = "Update"; }, 2000);
+        }
+      } catch(e) {
+        alert("Connection error. Please try again.");
+        btn.disabled = false; btn.textContent = "Submit";
+      }
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────
+    function renderError(msg) {
+      document.getElementById("page-body").innerHTML =
+        `<div class="alert alert-error">${msg}</div>`;
+    }
+
+    function escHtml(s) {
+      return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+
+    // ── Nav ───────────────────────────────────────────────────────
+    const sidebar = document.getElementById("sidebar");
+    const overlay = document.getElementById("sidebar-overlay");
+    document.getElementById("hamburger").addEventListener("click", () => {
+      sidebar.classList.toggle("open"); overlay.classList.toggle("open");
+    });
+    overlay.addEventListener("click", () => {
+      sidebar.classList.remove("open"); overlay.classList.remove("open");
+    });
+    document.getElementById("logout-link").addEventListener("click", e => { e.preventDefault(); logout(); });
+
+    init();
+  </script>
+</body>
+</html>
