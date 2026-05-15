@@ -408,3 +408,94 @@ html, body {
   justify-content: center;
   padding: 60px;
 }
+
+/* ============================================================
+   SPRINT 6 — Manage & Player Detail
+   ============================================================ */
+
+/* Inactive volunteer row */
+.user-row.inactive { opacity: 0.55; }
+.user-row.inactive .user-avatar { background: rgba(231,76,60,0.18); color: #E74C3C; }
+
+/* Player Detail modal — meta line */
+.player-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 14px;
+}
+
+/* Player Detail modal — stats strip (namespaced to avoid clobbering players.html .stats-strip) */
+.pd-stats {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.pd-stat {
+  flex: 1;
+  min-width: 100px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 12px;
+  text-align: center;
+}
+.pd-stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.1;
+}
+.pd-stat-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
+/* Attendance history table inside the modal */
+.attendance-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.attendance-table th {
+  background: rgba(255,255,255,0.04);
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+}
+.attendance-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  vertical-align: top;
+}
+.attendance-table tr:last-child td { border-bottom: none; }
+
+/* Mobile: fullscreen player-detail modal + stacked stats */
+@media (max-width: 600px) {
+  #player-detail-modal .modal {
+    max-width: 100%;
+    width: 100%;
+    height: 100vh;
+    border-radius: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  #player-detail-modal .modal-body {
+    flex: 1;
+    overflow-y: auto;
+  }
+  .pd-stats { flex-direction: column; }
+  .pd-stat { min-width: 0; }
+}
