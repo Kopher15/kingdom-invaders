@@ -194,14 +194,18 @@
         return;
       }
 
-      // Load event, players, existing attendance in parallel
+      // Load event, players, existing attendance, campuses, categories in parallel
       const month = new Date().getMonth() + 1;
       const year  = new Date().getFullYear();
 
-      const [eventsRes, attRes] = await Promise.all([
+      const [eventsRes, attRes, campusesRes, categoriesRes] = await Promise.all([
         apiGet({ action: "getEvents", month, year }),
-        apiGet({ action: "getAttendance", event_id: eventId })
+        apiGet({ action: "getAttendance", event_id: eventId }),
+        apiGet({ action: "getCampuses" }).catch(() => []),
+        apiGet({ action: "getCategories" }).catch(() => [])
       ]);
+      const _campuses   = Array.isArray(campusesRes)   ? campusesRes   : [];
+      const _categories = Array.isArray(categoriesRes) ? categoriesRes : [];
 
       // Find the event (search ±1 month if not found)
       let allEvents = Array.isArray(eventsRes) ? eventsRes : [];
@@ -222,6 +226,14 @@
         return;
       }
 
+      // Enrich currentEvent with display names for render()
+      const _camp = _campuses.find(c => c.campus_id === currentEvent.campus_id);
+      currentEvent.campus_name = _camp ? _camp.campus_name : currentEvent.campus_id;
+      const _cat = _categories.find(c => c.category_id === currentEvent.category_id);
+      currentEvent.category_label = _cat
+        ? ((_cat.sport_type || "") + " · " + (_cat.age_group || "")).replace(/^ · | · $/g, "")
+        : (currentEvent.category_id || "");
+
       // Load players for this event's campus + category
       const playersRes = await apiGet({
         action:      "getPlayers",
@@ -229,6 +241,12 @@
         category_id: currentEvent.category_id
       });
       players = Array.isArray(playersRes) ? playersRes : [];
+
+      // Fallback: if category_label couldn't be resolved from categories sheet,
+      // use the first player's category_label (server pre-resolves it on players).
+      if (!currentEvent.category_label && players.length && players[0].category_label) {
+        currentEvent.category_label = players[0].category_label;
+      }
 
       // Map existing attendance
       const records = Array.isArray(attRes) ? attRes : [];
@@ -268,7 +286,11 @@
           </div>` : ""}
           <div class="event-info-item">
             <span class="lbl">Campus</span>
-            <span class="val">${currentEvent.campus_id}</span>
+            <span class="val">${escHtml(currentEvent.campus_name || currentEvent.campus_id || "")}</span>
+          </div>
+          <div class="event-info-item">
+            <span class="lbl">Category</span>
+            <span class="val">${escHtml(currentEvent.category_label || currentEvent.category_id || "")}</span>
           </div>
           <div class="event-info-item">
             <span class="lbl">Players</span>
@@ -315,13 +337,15 @@
     function buildCard(p) {
       const state    = attendance[p.player_id];
       const present  = state.present;
+      // Auto-expand when present so praises/prayer fields are immediately visible
+      const expanded = present;
       return `
-        <div class="att-card ${present ? 'present' : ''}" id="card-${p.player_id}">
-          <div class="att-card-header" onclick="toggleExpand('${p.player_id}')">
-            <button class="att-toggle ${present ? 'on' : ''}" id="toggle-${p.player_id}"></button>
-            <span class="att-name">${escHtml(p.full_name)}</span>
+        <div class="att-card ${present ? 'present' : ''} ${expanded ? 'expanded' : ''}" id="card-${p.player_id}">
+          <div class="att-card-header">
+            <button class="att-toggle ${present ? 'on' : ''}" id="toggle-${p.player_id}" onclick="togglePresent('${p.player_id}')"></button>
+            <span class="att-name" onclick="togglePresent('${p.player_id}')">${escHtml(p.full_name)}</span>
             <span class="att-category">${escHtml(p.category_label || "")}</span>
-            <span class="att-expand-icon">▼</span>
+            <span class="att-expand-icon" onclick="toggleExpand('${p.player_id}')">▼</span>
           </div>
           <div class="att-notes" id="notes-${p.player_id}">
             <div class="form-group">
@@ -340,8 +364,11 @@
       attendance[playerId].present = !attendance[playerId].present;
       const card   = document.getElementById(`card-${playerId}`);
       const toggle = document.getElementById(`toggle-${playerId}`);
-      card.classList.toggle("present",   attendance[playerId].present);
-      toggle.classList.toggle("on",      attendance[playerId].present);
+      const nowPresent = attendance[playerId].present;
+      card.classList.toggle("present",  nowPresent);
+      toggle.classList.toggle("on",     nowPresent);
+      // Auto-expand praises/prayer when marked present, collapse when absent
+      card.classList.toggle("expanded", nowPresent);
       updateCount();
     }
 
@@ -353,7 +380,9 @@
     function markAll(present) {
       players.forEach(p => {
         attendance[p.player_id].present = present;
-        document.getElementById(`card-${p.player_id}`).classList.toggle("present", present);
+        const card = document.getElementById(`card-${p.player_id}`);
+        card.classList.toggle("present",  present);
+        card.classList.toggle("expanded", present);
         document.getElementById(`toggle-${p.player_id}`).classList.toggle("on", present);
       });
       updateCount();

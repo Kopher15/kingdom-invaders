@@ -1,0 +1,24 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Local artifacts
+*.docx
+*.tmp
+node_modules/
+
+# Sensitive
+.env
+.env.local
+credentials.json
+*.key

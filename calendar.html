@@ -370,25 +370,38 @@
         document.querySelectorAll(".admin-only").forEach(el => el.style.display = "none");
       }
 
-      // Load static data in parallel
-      const [campusRes, catRes, topicRes] = await Promise.all([
+      // Load EVERYTHING in parallel including the current month's events (was 2 sequential round trips)
+      const initialCampus = document.getElementById("campus-filter").value || "";
+      const [campusRes, catRes, topicRes, staffRes, eventsRes] = await Promise.all([
         apiGet({ action: "getCampuses" }).catch(() => []),
         getCategories(),
-        getTopics()
+        getTopics(),
+        apiGet({ action: "getStaffing" }).catch(() => []),
+        getEvents(currentMonth, currentYear, initialCampus).catch(() => [])
       ]);
+      events = Array.isArray(eventsRes) ? eventsRes : [];
 
-      // Use seed campuses if API returns stub
       campuses   = Array.isArray(campusRes) ? campusRes : [];
       categories = Array.isArray(catRes)    ? catRes    : [];
       topics     = Array.isArray(topicRes)  ? topicRes  : [];
 
-      // Volunteers from users (admin sees all, volunteer restricted)
-      const usersRes = await apiGet({ action: "getStaffing" }).catch(() => []);
-      volunteers = Array.isArray(usersRes) ? usersRes : [];
+      // getStaffing returns campus groups, each with .volunteers — flatten + dedupe
+      const volMap = {};
+      if (Array.isArray(staffRes)) {
+        staffRes.forEach(group => {
+          (group.volunteers || []).forEach(v => {
+            if (!volMap[v.user_id]) volMap[v.user_id] = v;
+          });
+        });
+      }
+      volunteers = Object.values(volMap);
 
       populateCampusFilter();
       populateEventForm();
-      await loadMonth();
+      // Skip extra round trip — events already loaded above
+      document.getElementById("month-label").textContent =
+        `${MONTH_NAMES[currentMonth - 1]} ${currentYear}`;
+      renderGrid();
     }
 
     function populateCampusFilter() {
@@ -568,7 +581,13 @@
           <div class="detail-icon">🏫</div>
           <div>
             <div class="detail-label">Campus · Category</div>
-            <div class="detail-value">${ev.campus_id}${ev.category_id ? ' · ' + ev.category_id : ''}</div>
+            <div class="detail-value">${(() => {
+              const c = campuses.find(x => x.campus_id === ev.campus_id);
+              const cat = categories.find(x => x.category_id === ev.category_id);
+              const campusLabel = c ? c.campus_name : (ev.campus_id || "");
+              const catLabel = cat ? ((cat.sport_type || "") + " · " + (cat.age_group || "")).replace(/^ · | · $/g, "") : (ev.category_id || "");
+              return catLabel ? campusLabel + " · " + catLabel : campusLabel;
+            })()}</div>
           </div>
         </div>
         <div class="detail-row">
@@ -590,7 +609,10 @@
           <div class="detail-icon">📖</div>
           <div>
             <div class="detail-label">Topic</div>
-            <div class="detail-value">${ev.topic_id}</div>
+            <div class="detail-value">${(() => {
+              const t = topics.find(x => x.topic_id === ev.topic_id);
+              return t ? (t.title || ev.topic_id) : ev.topic_id;
+            })()}</div>
           </div>
         </div>` : ''}
         ${ev.notes ? `

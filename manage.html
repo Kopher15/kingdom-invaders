@@ -132,7 +132,12 @@
               <h2>Volunteers</h2>
               <p>Active volunteer accounts and campus assignments</p>
             </div>
-            <button class="btn btn-primary btn-sm" id="add-vol-btn">+ Add Volunteer</button>
+            <div style="display:flex;align-items:center;gap:14px;">
+              <label class="toggle-inactive" style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer;">
+                <input type="checkbox" id="show-inactive-vol"> Show inactive
+              </label>
+              <button class="btn btn-primary btn-sm" id="add-vol-btn">+ Add Volunteer</button>
+            </div>
           </div>
           <div class="user-list" id="vol-list">
             <div class="loading-center"><span class="spinner"></span></div>
@@ -402,23 +407,62 @@
         return;
       }
       list.innerHTML = volunteers.map(v => {
+        const isInactive = (v.status || "active") === "inactive";
+        const rowClass   = isInactive ? "user-row inactive" : "user-row";
         const campusTags = (v.campus_names || []).map(n =>
           `<span class="campus-tag">${escHtml(n)}</span>`).join(" ");
+        const inactiveBadge = isInactive ? ` <span class="campus-tag" style="background:rgba(231,76,60,0.2);color:#E74C3C;">Inactive</span>` : "";
+        const actionBtn = isInactive
+          ? `<button class="btn btn-ghost btn-sm" onclick="restoreVolunteer('${v.user_id}')">Restore</button>`
+          : `<button class="btn btn-danger btn-sm" onclick="deleteVolunteer('${v.user_id}','${escHtml(v.full_name).replace(/'/g,"&#39;")}')">Delete</button>`;
         return `
-        <div class="user-row">
+        <div class="${rowClass}" data-user-id="${v.user_id}">
           <div class="user-avatar">${escHtml((v.full_name || "V").charAt(0).toUpperCase())}</div>
           <div class="user-info">
-            <div class="uname">${escHtml(v.full_name)}</div>
+            <div class="uname">${escHtml(v.full_name)}${inactiveBadge}</div>
             <div class="umeta" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:3px;">
               @${escHtml(v.username || v.user_id)} &nbsp;${campusTags}
             </div>
           </div>
           <div class="user-actions">
             <button class="btn btn-ghost btn-sm" onclick='openEditVol(${JSON.stringify(v).replace(/"/g,"&quot;")})'>Edit</button>
+            ${actionBtn}
           </div>
         </div>`;
       }).join("");
     }
+
+    async function reloadVolunteers() {
+      const includeInactive = document.getElementById("show-inactive-vol").checked ? "1" : "0";
+      const staffRes = await apiGet({ action: "getStaffing", include_inactive: includeInactive });
+      const volMap = {};
+      if (Array.isArray(staffRes)) {
+        staffRes.forEach(group => {
+          (group.volunteers || []).forEach(v => {
+            if (!volMap[v.user_id]) volMap[v.user_id] = { ...v, campus_names: [] };
+            volMap[v.user_id].campus_names.push(group.campus_name);
+            volMap[v.user_id].campus_assignments = v.campus_assignments || [];
+          });
+        });
+      }
+      volunteers = Object.values(volMap);
+      renderVolunteers();
+    }
+
+    async function deleteVolunteer(userId, fullName) {
+      if (!confirm(`Deactivate ${fullName}?\n\nThey will be hidden from lists but their history is preserved. You can restore them later.`)) return;
+      const res = await apiPost({ action: "deleteVolunteer", user_id: userId });
+      if (res.error) { alert("Delete failed: " + res.error); return; }
+      reloadVolunteers();
+    }
+
+    async function restoreVolunteer(userId) {
+      const res = await apiPost({ action: "restoreVolunteer", user_id: userId });
+      if (res.error) { alert("Restore failed: " + res.error); return; }
+      reloadVolunteers();
+    }
+
+    document.getElementById("show-inactive-vol").addEventListener("change", reloadVolunteers);
 
     function generateUsername(fullName) {
       const parts = fullName.trim().toLowerCase().replace(/[^a-z\s]/g, "").split(/\s+/).filter(Boolean);

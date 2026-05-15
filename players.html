@@ -190,6 +190,40 @@
     </div>
   </div>
 
+  <!-- Player Detail Modal -->
+  <div class="modal-backdrop" id="player-detail-modal">
+    <div class="modal" style="max-width:720px;">
+      <div class="modal-header">
+        <h2 id="pd-name">Player</h2>
+        <button class="modal-close" onclick="closeModal('player-detail-modal')">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="player-meta">
+          <span id="pd-campus"></span>
+          <span id="pd-sport"></span>
+          <span id="pd-age"></span>
+          <span id="pd-registered"></span>
+        </div>
+        <div class="pd-stats">
+          <div class="pd-stat"><div class="pd-stat-value" id="pd-attended">0</div><div class="pd-stat-label">Attended</div></div>
+          <div class="pd-stat"><div class="pd-stat-value" id="pd-total">0</div><div class="pd-stat-label">Total Events</div></div>
+          <div class="pd-stat"><div class="pd-stat-value" id="pd-pct">0%</div><div class="pd-stat-label">Attendance</div></div>
+        </div>
+        <h3 style="font-size:14px;font-weight:600;margin:18px 0 8px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">Attendance History</h3>
+        <div class="table-wrap" id="pd-history-wrap">
+          <table class="attendance-table">
+            <thead><tr><th>Date</th><th>Event Type</th><th>Praises</th><th>Prayer Requests</th></tr></thead>
+            <tbody id="pd-history-body"></tbody>
+          </table>
+        </div>
+        <div id="pd-empty" style="display:none;padding:24px;text-align:center;color:var(--muted);">No attendance records yet.</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal('player-detail-modal')">Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Confirm Delete Modal -->
   <div class="modal-backdrop" id="delete-modal">
     <div class="modal" style="max-width:380px;">
@@ -356,7 +390,7 @@
 
       tbody.innerHTML = visible.map(p => `
         <tr>
-          <td class="td-name">${escHtml(p.full_name)}</td>
+          <td class="td-name"><a href="#" onclick="openPlayerDetail('${p.player_id}');return false;" style="color:var(--text);text-decoration:none;border-bottom:1px dashed var(--border);">${escHtml(p.full_name)}</a></td>
           <td class="col-id td-id">${p.player_id}</td>
           <td>${escHtml(p.campus_name)}</td>
           <td>${escHtml(p.category_label)}</td>
@@ -373,6 +407,54 @@
 
     function escHtml(s) {
       return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+
+    function fmtDate(s) {
+      if (!s) return "—";
+      const d = new Date(s);
+      if (isNaN(d.getTime())) return s;
+      return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    }
+
+    // ── Player Detail Modal ───────────────────────────────────────
+    async function openPlayerDetail(playerId) {
+      openModal("player-detail-modal");
+      document.getElementById("pd-name").textContent = "Loading…";
+      document.getElementById("pd-history-body").innerHTML = "";
+      document.getElementById("pd-empty").style.display = "none";
+      document.getElementById("pd-history-wrap").style.display = "";
+
+      const res = await apiGet({ action: "getPlayerDetail", player_id: playerId });
+      if (res.error) {
+        document.getElementById("pd-name").textContent = "Error";
+        alert("Could not load player: " + res.error);
+        return;
+      }
+      const p = res.player || {};
+      document.getElementById("pd-name").textContent       = p.full_name || "Player";
+      document.getElementById("pd-campus").textContent     = p.campus_name || "";
+      document.getElementById("pd-sport").textContent      = p.sport_type ? "· " + p.sport_type : "";
+      document.getElementById("pd-age").textContent        = p.age_group ? "· " + p.age_group : "";
+      document.getElementById("pd-registered").textContent = p.date_registered ? "· Registered " + fmtDate(p.date_registered) : "";
+
+      const s = res.stats || { attended: 0, total: 0, pct: 0 };
+      document.getElementById("pd-attended").textContent = s.attended;
+      document.getElementById("pd-total").textContent    = s.total;
+      document.getElementById("pd-pct").textContent      = s.pct + "%";
+
+      const rows = res.attendance || [];
+      if (!rows.length) {
+        document.getElementById("pd-empty").style.display = "block";
+        document.getElementById("pd-history-wrap").style.display = "none";
+      } else {
+        document.getElementById("pd-history-body").innerHTML = rows.map(r => `
+          <tr>
+            <td>${escHtml(fmtDate(r.date))}</td>
+            <td>${escHtml(r.event_type || "—")}</td>
+            <td>${escHtml(r.praises || "—")}</td>
+            <td>${escHtml(r.prayer_requests || "—")}</td>
+          </tr>`).join("");
+      }
     }
 
     // ── Add Player ────────────────────────────────────────────────
