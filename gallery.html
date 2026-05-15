@@ -201,7 +201,7 @@
       <div class="topbar">
         <button class="hamburger" id="hamburger">☰</button>
         <span class="topbar-title">Gallery</span>
-        <button class="btn btn-primary btn-sm admin-only" id="upload-btn">+ Add Photos</button>
+        <button class="btn btn-primary btn-sm" id="upload-btn">+ Add Photos</button>
       </div>
 
       <div class="page-body">
@@ -377,7 +377,8 @@
                       const lbIdx = lightboxPhotos.length;
                       lightboxPhotos.push(ph);
                       const thumb = `https://drive.google.com/thumbnail?id=${ph.drive_file_id}&sz=w400`;
-                      const delBtn = isAdmin()
+                      const canDelete = isAdmin() || ph.uploaded_by === getUser().user_id;
+                      const delBtn = canDelete
                         ? `<button class="tile-delete" onclick="deletePhoto(event,'${ph.photo_id}')">Delete</button>`
                         : "";
                       return `
