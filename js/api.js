@@ -1,6 +1,6 @@
 // FCA CVR — API Utilities
 
-const API_URL = "https://script.google.com/macros/s/AKfycbxigtk8Yo5-BXkzWlmiBk5kU2G1Slu6ULihj9QUj8PwZy3NOhI8JdiybVALFHRB7nY7/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzxKcw8wfGmKSBy9GviiBr3SEKghvRm17Xg9UZ4cSWAChuA0qalJCQyrxvz3QaNe2Xm/exec";
 
 // ── Auth helpers ──────────────────────────────────────────────
 
@@ -131,10 +131,17 @@ function formatDateLabel(dateStr) {
   return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
-// Format time "HH:MM" → "9:00 AM"
+// Format time "HH:MM" → "9:00 AM" — robust against malformed input
+// (e.g. "1899-12-30" from older backend deployments without the time-preserving fix)
 function formatTime(t) {
   if (!t) return "";
-  const [h, m] = t.split(":").map(Number);
+  const str = String(t);
+  // Must look like HH:MM (optional seconds). Anything else returns blank.
+  const match = str.match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return "";
+  const h = Number(match[1]);
+  const m = Number(match[2]);
+  if (isNaN(h) || isNaN(m)) return "";
   const ampm = h >= 12 ? "PM" : "AM";
   const hr   = h % 12 || 12;
   return `${hr}:${pad2(m)} ${ampm}`;
