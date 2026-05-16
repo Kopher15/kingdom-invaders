@@ -37,20 +37,24 @@ function requireAdmin(redirectTo = "calendar.html") {
 
 async function apiGet(params = {}) {
   params.token = getToken();
-  const qs  = new URLSearchParams(params).toString();
-  const res = await fetch(`${API_URL}?${qs}`, { redirect: "follow" });
-  return res.json();
+  const qs   = new URLSearchParams(params).toString();
+  const res  = await fetch(`${API_URL}?${qs}`, { redirect: "follow" });
+  const data = await res.json();
+  if (data.error === "Unauthorized.") { clearSession(); window.location.href = "index.html"; return {}; }
+  return data;
 }
 
 async function apiPost(payload = {}) {
   payload.token = getToken();
-  const res = await fetch(API_URL, {
+  const res  = await fetch(API_URL, {
     method:   "POST",
     headers:  { "Content-Type": "text/plain" },
     body:     JSON.stringify(payload),
     redirect: "follow"
   });
-  return res.json();
+  const data = await res.json();
+  if (data.error === "Unauthorized.") { clearSession(); window.location.href = "index.html"; return {}; }
+  return data;
 }
 
 // ── Auth calls ────────────────────────────────────────────────
@@ -131,17 +135,10 @@ function formatDateLabel(dateStr) {
   return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
-// Format time "HH:MM" → "9:00 AM" — robust against malformed input
-// (e.g. "1899-12-30" from older backend deployments without the time-preserving fix)
+// Format time "HH:MM" → "9:00 AM"
 function formatTime(t) {
   if (!t) return "";
-  const str = String(t);
-  // Must look like HH:MM (optional seconds). Anything else returns blank.
-  const match = str.match(/^(\d{1,2}):(\d{2})/);
-  if (!match) return "";
-  const h = Number(match[1]);
-  const m = Number(match[2]);
-  if (isNaN(h) || isNaN(m)) return "";
+  const [h, m] = t.split(":").map(Number);
   const ampm = h >= 12 ? "PM" : "AM";
   const hr   = h % 12 || 12;
   return `${hr}:${pad2(m)} ${ampm}`;
